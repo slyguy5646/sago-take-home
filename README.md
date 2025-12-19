@@ -15,7 +15,7 @@ This project allows a user (a VC) to take information about a company they chose
 ### 3. Pending research round is shown in web dashboard
 <img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/pending-research.png" width="700">
 
-### 4. Completed research is show in the web dashboard, new round scheduled
+### 4. Completed research is shown in the web dashboard, new round scheduled
 <img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/research-round-completed.png" width="700">
 
 ### 5. On the second round of research, the tool decides that company should be reconsidered for investment and emails the user accordingly with reasoning and a potential outreach message
