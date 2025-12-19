@@ -82,6 +82,8 @@ model Company {
   description String?
   industry String?
 
+  reasonForNotInvesting String?
+  
   logoUrl String?
   website     String?
 
@@ -127,12 +129,18 @@ model ScrapeRound {
 
   roundNumber Int
 
-  description String // AI description of what additional info was discovered for this round
+  shouldInvest Boolean @default(false)
+
+  sentiment String // overall sentiment
+  financialInfo String // overall financial information
+  customerInfo String // customer information
 
   completed Boolean @default(false)
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  scheduledFor DateTime
 
   updatedAt DateTime @default(now()) @updatedAt
   createdAt DateTime @default(now())

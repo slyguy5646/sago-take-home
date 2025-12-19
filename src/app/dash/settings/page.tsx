@@ -1,10 +1,12 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { CopyButton } from "@/components/dash/CopyButton";
 import { SignOutButton } from "@/components/dash/SignOutButton";
-import { Mail } from "lucide-react";
+import { Mail, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
@@ -16,17 +18,23 @@ export default async function SettingsPage() {
   }
 
   const user = session.user;
-  const emailLocal = user.email.split("@")[0];
-  const forwardingEmail = `${emailLocal}+companysago@forward.sago.app`;
+  const forwardingEmail = `companies@sago.lpm.sh`;
 
   return (
     <div className="space-y-12">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-neutral-500 mt-2">
-          Manage your account and preferences
-        </p>
+      <div className="flex gap-4">
+        <Link href="/dash" className="pt-1">
+          <Button variant="ghost" size="icon-sm">
+            <ArrowLeft className="size-4" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <p className="text-neutral-500 mt-2">
+            Manage your account and preferences
+          </p>
+        </div>
       </div>
 
       {/* Account Information Section */}
@@ -127,9 +135,9 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-     <div className="w-full justify-end flex">
-       <SignOutButton />
-     </div>
+      <div className="w-full justify-end flex">
+        <SignOutButton />
+      </div>
     </div>
   );
 }

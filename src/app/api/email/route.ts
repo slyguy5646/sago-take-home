@@ -7,9 +7,15 @@ import { ListAttachmentsResponseSuccess } from "resend";
 import { webSearch } from "@exalabs/ai-sdk";
 import {
   checkIfUserIsWatchingCompanyAlready,
+  conductResearchRound,
   newCompanyResearch,
+  updatePreviousCompany,
 } from "@/lib/ai";
 import { FilePart } from "ai";
+import { start } from "workflow/api";
+import { Company } from "@/generated/prisma/client";
+import { CompanyGetPayload } from "@/generated/prisma/models";
+import { startCompanyResearch } from "@/lib/continuous-research";
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,12 +73,16 @@ export async function POST(req: NextRequest) {
 
       console.log(attachments?.data[0].download_url);
 
-      workflow({
+      const company = await updateOrStartTrackingCompany({
         userId: user.id,
         emailData: emailData,
         emailBody: emailBody.text!,
         attachments,
       });
+
+      if (!company) return new NextResponse();
+
+      await start(startCompanyResearch, [user.id, company]);
     }
 
     return new NextResponse();
@@ -81,7 +91,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function workflow({
+async function updateOrStartTrackingCompany({
   userId,
   emailData,
   emailBody,
@@ -92,8 +102,6 @@ async function workflow({
   emailBody: string;
   attachments?: ListAttachmentsResponseSuccess | null;
 }) {
-  "use workflow";
-
   // get the file's contents
 
   let files: Array<FilePart> = [];
@@ -123,39 +131,60 @@ async function workflow({
 
   // return new NextResponse();
 
-  const status = await checkIfUserIsWatchingCompanyAlready({
-    userId,
-    emailData,
-    emailBody,
-    files,
-  });
+  const { isWatching, companyName } = await checkIfUserIsWatchingCompanyAlready(
+    {
+      userId,
+      emailData,
+      emailBody,
+      files,
+    }
+  );
 
-  console.log("status: ", status);
+  console.log("status: ", isWatching);
 
-  switch (status) {
+  let company: CompanyGetPayload<{ include: { founders: true } }> | null = null;
+
+  switch (isWatching) {
     // if the company already is being watched
     case "TRUE":
-      break;
+      if (!companyName) return null;
+      const previousCompany = await prisma.company.findFirst({
+        where: {
+          name: {
+            equals: companyName,
+            mode: "insensitive",
+          },
+          userId: userId,
+        },
+        include: {
+          founders: true,
+        },
+      });
 
-    // if company is not being watched
-    case "FALSE":
-      const data = await newCompanyResearch({
-        userId,
+      if (!previousCompany) return null;
+
+      const updatedCompanyData = await updatePreviousCompany({
+        company: previousCompany,
         emailData,
         emailBody,
         files,
       });
 
-      await prisma.company.create({
+      company = await prisma.company.update({
+        where: {
+          id: previousCompany.id,
+        },
         data: {
-          name: data.name,
-          description: data.description,
-          industry: data.industry,
-          website: data.website,
+          name: updatedCompanyData.name,
+          description: updatedCompanyData.description,
+          industry: updatedCompanyData.industry,
+          website: updatedCompanyData.website,
+          reasonForNotInvesting: updatedCompanyData.reasonForNotInvesting,
+          logoUrl: updatedCompanyData.logoUrl,
           founders: {
             createMany: {
               data: [
-                ...data.founders.map((founder) => ({
+                ...updatedCompanyData.founders.map((founder) => ({
                   name: founder.name,
                   bio: founder.bio,
                   twitter: founder.twitter,
@@ -169,33 +198,95 @@ async function workflow({
             connect: { id: userId },
           },
         },
+        include: { founders: true },
       });
 
       await resend.emails.send({
         from: "Sago <companies@sago.lpm.sh>",
         to: emailData.from,
-        subject: `Added company: ${data.name} to your watchlist`,
+        subject: `Updated company: ${updatedCompanyData.name} on your watchlist`,
+        headers: {
+          "In-Reply-To": emailData.message_id,
+        },
+        text:
+          "We've updated the company you emailed about on your watchlist!\n\n" +
+          `Company Name: ${updatedCompanyData.name}\n` +
+          `Description: ${updatedCompanyData.description}\n` +
+          `Industry: ${updatedCompanyData.industry}\n` +
+          (updatedCompanyData.website
+            ? `Website: ${updatedCompanyData.website}\n`
+            : "") +
+          "Best,\nThe Sago Team",
+      });
+
+      return null;
+
+      break;
+
+    // if company is not being watched
+    case "FALSE":
+      const newCompanyData = await newCompanyResearch({
+        userId,
+        emailData,
+        emailBody,
+        files,
+      });
+
+      company = await prisma.company.create({
+        data: {
+          name: newCompanyData.name,
+          description: newCompanyData.description,
+          industry: newCompanyData.industry,
+          website: newCompanyData.website,
+          reasonForNotInvesting: newCompanyData.reasonForNotInvesting,
+          logoUrl: newCompanyData.logoUrl,
+          founders: {
+            createMany: {
+              data: [
+                ...newCompanyData.founders.map((founder) => ({
+                  name: founder.name,
+                  bio: founder.bio,
+                  twitter: founder.twitter,
+                  email: founder.email,
+                  linkedin: founder.linkedin,
+                })),
+              ],
+            },
+          },
+          user: {
+            connect: { id: userId },
+          },
+        },
+        include: { founders: true },
+      });
+
+      await resend.emails.send({
+        from: "Sago <companies@sago.lpm.sh>",
+        to: emailData.from,
+        subject: `Added company: ${newCompanyData.name} to your watchlist`,
         headers: {
           "In-Reply-To": emailData.message_id,
         },
         text:
           "We've added the company you emailed about to your watchlist!\n\n" +
-          `Company Name: ${data.name}\n` +
-          `Description: ${data.description}\n` +
-          `Industry: ${data.industry}\n` +
-          (data.website ? `Website: ${data.website}\n` : "") +
+          `Company Name: ${newCompanyData.name}\n` +
+          `Description: ${newCompanyData.description}\n` +
+          `Industry: ${newCompanyData.industry}\n` +
+          (newCompanyData.website
+            ? `Website: ${newCompanyData.website}\n`
+            : "") +
           "Best,\nThe Sago Team",
       });
 
-      console.log("Found company data: ", data);
+      console.log("Found company data: ", newCompanyData);
 
       break;
 
     // if email is not about a company
     case "NOT_COMPANY":
-      return new NextResponse();
+      return null;
       break;
   }
 
-  // const research = await initialCompanyResearch();
+  return company;
 }

@@ -6,11 +6,17 @@ import airbnb from "@/assets/airbnb.png";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/dash/CopyButton";
-
+import { prisma } from "@/lib/db";
 
 export default async function Dashboard() {
   const session = await auth.api.getSession({
     headers: await headers(),
+  });
+
+  const companies = await prisma.company.findMany({
+    where: {
+      user: { id: session?.user?.id },
+    },
   });
 
   return (
@@ -34,7 +40,7 @@ export default async function Dashboard() {
 
       <div className="mt-4">
         <div className="text-neutral-500 px-2">Companies</div>
-        <CompanyRow image={airbnb} name="Airbnb" />
+        {companies.map((co) => <CompanyRow id={co.id} image={co.logoUrl || ""} name={co.name} key={co.id}/>)}
       </div>
     </div>
   );
