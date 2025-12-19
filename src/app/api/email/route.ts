@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resend, WebhookPayload } from "@/lib/resend";
 import {} from "next/navigation";
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth";
 import { ListAttachmentsResponseSuccess } from "resend";
-import { webSearch } from "@exalabs/ai-sdk";
 import {
   checkIfUserIsWatchingCompanyAlready,
   newCompanyResearch,
@@ -13,7 +11,6 @@ import {
 } from "@/lib/ai";
 import { FilePart } from "ai";
 import { start } from "workflow/api";
-import { Company } from "@/generated/prisma/client";
 import { CompanyGetPayload } from "@/generated/prisma/models";
 import { startCompanyResearch } from "@/lib/continuous-research/workflow";
 
