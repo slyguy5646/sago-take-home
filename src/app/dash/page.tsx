@@ -25,7 +25,7 @@ export default async function Dashboard() {
       <div className="flex items-center gap-2 pt-4">
         <Input
           type="email"
-          value={"sago@lpm.sh"}
+          value={"companies@sago.lpm.sh"}
           disabled
           className="bg-neutral-50 font-mono text-sm cursor-not-allowed"
         />

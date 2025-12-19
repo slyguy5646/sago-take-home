@@ -1,21 +1,28 @@
 import { webSearch } from "@exalabs/ai-sdk";
-import { FilePart, generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
-import { ListAttachmentsResponseSuccess, Webhook } from "resend";
+import {
+  FilePart,
+  generateObject,
+  Output,
+  generateText,
+  stepCountIs,
+} from "ai";
+import { z } from "zod/v4";
+import { ListAttachmentsResponseSuccess } from "resend";
 import { WebhookPayload } from "./resend";
 import { prisma } from "./db";
+import { anthropic } from "@ai-sdk/anthropic";
+import { exa } from "./exa";
 
 export async function checkIfUserIsWatchingCompanyAlready({
   userId,
   emailData,
   emailBody,
-  attachments,
+  files,
 }: {
   userId: string;
   emailData: WebhookPayload["data"];
   emailBody: string;
-  attachments?: ListAttachmentsResponseSuccess | null;
+  files?: FilePart[] | null;
 }) {
   "use step";
 
@@ -28,20 +35,8 @@ export async function checkIfUserIsWatchingCompanyAlready({
     },
   });
 
-  attachments?.data[0].download_url;
-
-  const files = attachments?.data.map(
-    (a) =>
-      ({
-        type: "file",
-        data: a.download_url,
-        mediaType: a.content_type,
-        filename: a.filename,
-      } satisfies FilePart)
-  );
-
   const { object } = await generateObject({
-    model: openai("gpt-5"),
+    model: anthropic("claude-sonnet-4-5"),
     schema: z.object({
       isWatching: z.enum(["TRUE", "FALSE", "NOT_COMPANY"]),
     }),
@@ -79,18 +74,93 @@ export async function checkIfUserIsWatchingCompanyAlready({
   return object.isWatching;
 }
 
-export async function newCompanyResearch() {
+export async function newCompanyResearch({
+  userId,
+  emailData,
+  emailBody,
+  files,
+}: {
+  userId: string;
+  emailData: WebhookPayload["data"];
+  emailBody: string;
+  files?: FilePart[] | null;
+}) {
   "use step";
+  const res = await generateText({
+    model: anthropic("claude-sonnet-4-5"),
+    onStepFinish: async (step) => {
+      console.log("Step finished:", step.content);
+      console.log("Step", step.sources);
+    },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `
+            You are an assistant for a venture capital firm. You are part of a greater system where a VC sends an email with company information and the company information is ingested into a system. This system continually checks the company for progress and notifies the VC if they should be recondsidered for investment.
 
-  const { object } = await generateObject({
-    model: openai("gpt-5"),
-    schema: z.object({
-      recipe: z.object({
+            You goal now is to extract company information from the provided email information/attachments and any web information you can find. You should find the name of the company, any logo url they have on their website, a brief description, their industry, their website url, and information on the founders including the following: name, a brief bio, twitter url, email address, and linkedin url.
+
+            Here is the email information:
+            Subject: ${emailData.subject}
+            Body: ${emailBody}
+
+            Make sure to check the web for anything you can't find in the email or attachments.
+
+            Please return the information in the proper format.
+          `,
+          },
+          ...(files ? files : []),
+        ],
+      },
+    ],
+    tools: {
+      webSearch: webSearch({
+        numResults: 3,
+        userLocation: "US",
+        // includeDomains: ["linkedin.com", "crunchbase.com"],
+        contents: {
+          text: {
+            includeHtmlTags: false,
+          },
+        },
+      }),
+    },
+
+    toolChoice: "required",
+
+    experimental_output: Output.object({
+      schema: z.object({
         name: z.string(),
-        ingredients: z.array(z.string()),
-        steps: z.array(z.string()),
+        logoUrl: z.union([z.string(), z.null()]),
+        description: z.string(),
+        industry: z.string(),
+        website: z.union([z.string(), z.null()]),
+        founders: z.array(
+          z.object({
+            name: z.string(),
+            bio: z.union([z.string(), z.null()]),
+            twitter: z.union([z.string(), z.null()]),
+            email: z.union([z.string(), z.null()]),
+            linkedin: z.union([z.string(), z.null()]),
+          })
+        ),
       }),
     }),
-    prompt: "Generate a lasagna recipe.",
+    stopWhen: stepCountIs(3),
   });
+
+  console.log(res.finishReason);
+
+  return res.experimental_output;
 }
+
+// export async function findLinkedInProfile(name: string): Promise<string | null> {
+//   "use step";
+
+//   const searchResult = await webSearch({
+//     query: `LinkedIn profile of ${name}`,
+//     numResults: 1,
+//   });

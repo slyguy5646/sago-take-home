@@ -79,23 +79,21 @@ model Company {
   id String @id @default(uuid())
 
   name String @unique
-
-  files CompanyFile[]
+  description String?
+  industry String?
 
   logoUrl String?
-
-  description String?
   website     String?
 
   founders     Founder[]
+  files CompanyFile[]
   scrapeRounds ScrapeRound[]
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-
 }
 
 model CompanyFile {

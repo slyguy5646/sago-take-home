@@ -5,7 +5,11 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { ListAttachmentsResponseSuccess } from "resend";
 import { webSearch } from "@exalabs/ai-sdk";
-import { checkIfUserIsWatchingCompanyAlready } from "@/lib/ai";
+import {
+  checkIfUserIsWatchingCompanyAlready,
+  newCompanyResearch,
+} from "@/lib/ai";
+import { FilePart } from "ai";
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,6 +63,10 @@ export async function POST(req: NextRequest) {
         attachments = atchments;
       }
 
+      console.log("URL: ", attachments?.data[0].download_url);
+
+      console.log(attachments?.data[0].download_url);
+
       workflow({
         userId: user.id,
         emailData: emailData,
@@ -86,14 +94,108 @@ async function workflow({
 }) {
   "use workflow";
 
+  // get the file's contents
+
+  let files: Array<FilePart> = [];
+
+  if (attachments) {
+    for (const attachment of attachments.data) {
+      const response = await fetch(attachment.download_url);
+      if (!response.ok) {
+        console.log(`Failed to download ${attachment.filename}`);
+        continue;
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+
+      files.push({
+        type: "file",
+        data: `data:${attachment.content_type};base64,${buffer.toString(
+          "base64"
+        )}`,
+        mediaType: attachment.content_type,
+        filename: attachment.filename,
+      });
+    }
+  }
+
+  // console.log(files);
+
+  // return new NextResponse();
+
   const status = await checkIfUserIsWatchingCompanyAlready({
     userId,
     emailData,
     emailBody,
-    attachments,
+    files,
   });
 
   console.log("status: ", status);
+
+  switch (status) {
+    // if the company already is being watched
+    case "TRUE":
+      break;
+
+    // if company is not being watched
+    case "FALSE":
+      const data = await newCompanyResearch({
+        userId,
+        emailData,
+        emailBody,
+        files,
+      });
+
+      await prisma.company.create({
+        data: {
+          name: data.name,
+          description: data.description,
+          industry: data.industry,
+          website: data.website,
+          founders: {
+            createMany: {
+              data: [
+                ...data.founders.map((founder) => ({
+                  name: founder.name,
+                  bio: founder.bio,
+                  twitter: founder.twitter,
+                  email: founder.email,
+                  linkedin: founder.linkedin,
+                })),
+              ],
+            },
+          },
+          user: {
+            connect: { id: userId },
+          },
+        },
+      });
+
+      await resend.emails.send({
+        from: "Sago <companies@sago.lpm.sh>",
+        to: emailData.from,
+        subject: `Added company: ${data.name} to your watchlist`,
+        headers: {
+          "In-Reply-To": emailData.message_id,
+        },
+        text:
+          "We've added the company you emailed about to your watchlist!\n\n" +
+          `Company Name: ${data.name}\n` +
+          `Description: ${data.description}\n` +
+          `Industry: ${data.industry}\n` +
+          (data.website ? `Website: ${data.website}\n` : "") +
+          "Best,\nThe Sago Team",
+      });
+
+      console.log("Found company data: ", data);
+
+      break;
+
+    // if email is not about a company
+    case "NOT_COMPANY":
+      return new NextResponse();
+      break;
+  }
 
   // const research = await initialCompanyResearch();
 }
