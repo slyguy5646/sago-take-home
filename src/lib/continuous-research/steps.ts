@@ -34,6 +34,7 @@ export async function scheduleNewRound(
       financialInfo: "",
       sentiment: "",
       customerInfo: "",
+      reasoning: "",
     },
   });
 
@@ -87,17 +88,11 @@ export async function notifyUserOfNewDecision({
     subject: `Updated Investment Decison`,
     to: [user.email],
     from: "Sago <companies@sago.lpm.sh>",
-    text: `
-        Hi ${user.name.split(" ")[0]},
-        
-        It looks like ${company.name} might be ready for another look!
-        
-        Investment reasoning: ${reasoning}
-
-        Template outreach message: ${outreachMessage}
-
-        View more info on Sago: https://sago.lpm.sh/dash/${company.id}
-        `,
+    text: `Hi ${user.name.split(" ")[0]},\nIt looks like ${
+      company.name
+    } might be ready for another look!\nInvestment reasoning: ${reasoning}\nTemplate outreach message: ${outreachMessage}\nView more info on Sago: https://sago.lpm.sh/dash/${
+      company.id
+    }`,
   });
 }
 
@@ -185,10 +180,6 @@ export async function conductResearchRound(
     getResearchInfo(customersPrompt),
   ]);
 
-  console.log("Financial Info: ", financialInfo);
-  console.log("Sentiment Info: ", companySentiment);
-  console.log("Customer Info", customerInfo);
-
   return { financialInfo, companySentiment, customerInfo };
 }
 
@@ -214,12 +205,7 @@ async function getResearchInfo(prompt: string) {
     },
   });
 
-  console.log("task: ", task);
-
-
   const result = await exa.research.pollUntilFinished(task.researchId);
-
-  console.log("result: ", result)
 
   if (result.status == "completed") {
     const data = result.output.parsed as z.infer<typeof schema>;
@@ -265,7 +251,7 @@ export async function makeInvestmentDecision(
             type: "text",
             text: `
             You are an assistant at a venture capital firm. You help partners make investment decisons about companies they previously chose not to invest in, given new information. You'll be given general company information, financial info, public sentiment about the company, and some information about the company's customers. Your goal is to make an update decision of whether or not to invest. 
-            Give your reasoning either way. Also, if your decison is yes, create an outreach message to the founders that could be used.  
+            Give your reasoning for your decision no matter what your decision is. Also, if your decison is yes, create an outreach message to the founders that could be used.  
 
             Here is the company information:
             Name: ${company.name}
@@ -309,6 +295,14 @@ export async function makeInvestmentDecision(
         ],
       },
     ],
+  });
+
+  await prisma.scrapeRound.update({
+    where: { id: newScrapeRound.id },
+    data: {
+      shouldInvest: res.experimental_output.shouldInvest,
+      reasoning: res.experimental_output.reasoning,
+    },
   });
 
   return res.experimental_output;

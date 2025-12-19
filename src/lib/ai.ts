@@ -89,10 +89,6 @@ export async function newCompanyResearch({
 }) {
   const res = await generateText({
     model: anthropic("claude-sonnet-4-5"),
-    onStepFinish: async (step) => {
-      console.log("Step finished:", step.content);
-      console.log("Step", step.sources);
-    },
     messages: [
       {
         role: "user",
@@ -157,8 +153,6 @@ export async function newCompanyResearch({
     stopWhen: stepCountIs(3),
   });
 
-  console.log(res.finishReason);
-
   return res.experimental_output;
 }
 
@@ -177,10 +171,6 @@ export async function updatePreviousCompany({
 }) {
   const res = await generateText({
     model: anthropic("claude-sonnet-4-5"),
-    onStepFinish: async (step) => {
-      console.log("Step finished:", step.content);
-      console.log("Step", step.sources);
-    },
     messages: [
       {
         role: "user",
@@ -282,14 +272,9 @@ export async function researchFounders({
     outputSchema: founderResearchSchema,
   });
 
-  console.log(task);
-
   const result = await exa.research.pollUntilFinished(task.researchId);
-  console.log(result);
 
   if (result.status == "completed") {
-    console.log("Founder research: ", result.output.parsed);
-
     return result.output.parsed as {
       founders: Array<{ name: string; bio: string; linkedin?: string | null }>;
     };

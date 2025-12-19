@@ -131,6 +131,7 @@ model ScrapeRound {
   roundNumber Int
 
   shouldInvest Boolean @default(false)
+  reasoning String
 
   sentiment String // overall sentiment
   financialInfo String // overall financial information

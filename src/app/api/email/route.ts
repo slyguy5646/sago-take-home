@@ -40,10 +40,7 @@ export async function POST(req: NextRequest) {
 
       if (!user) return new NextResponse();
 
-      console.log("Found user:", user.name);
       const emailData = result.data;
-
-      console.log("Received email:", emailData);
 
       let attachments: ListAttachmentsResponseSuccess | null = null;
 
@@ -52,7 +49,6 @@ export async function POST(req: NextRequest) {
       );
 
       if (error) {
-        console.log("Error fetching email body:", error);
         return new NextResponse();
       }
 
@@ -63,7 +59,6 @@ export async function POST(req: NextRequest) {
           });
 
         if (error || !atchments) {
-          console.log("Error fetching attachments:", error);
           return new NextResponse();
         }
 
@@ -109,7 +104,6 @@ async function updateOrStartTrackingCompany({
     for (const attachment of attachments.data) {
       const response = await fetch(attachment.download_url);
       if (!response.ok) {
-        console.log(`Failed to download ${attachment.filename}`);
         continue;
       }
 
@@ -125,10 +119,6 @@ async function updateOrStartTrackingCompany({
       });
     }
   }
-
-  // console.log(files);
-
-  // return new NextResponse();
 
   const { isWatching, companyName } = await checkIfUserIsWatchingCompanyAlready(
     {
@@ -200,9 +190,9 @@ async function updateOrStartTrackingCompany({
       });
 
       await resend.emails.send({
-        from: "Sago <companies@sago.lpm.sh>",
+        from: "companies@sago.lpm.sh",
         to: emailData.from,
-        subject: `Updated company: ${updatedCompanyData.name} on your watchlist`,
+        subject: `Re: ${emailData.subject}`,
         headers: {
           "In-Reply-To": emailData.message_id,
         },
@@ -275,9 +265,10 @@ async function updateOrStartTrackingCompany({
       });
 
       await resend.emails.send({
-        from: "Sago <companies@sago.lpm.sh>",
+        from: "companies@sago.lpm.sh",
         to: emailData.from,
-        subject: `Added company: ${newCompanyData.name} to your watchlist`,
+        subject: `Re: ${emailData.subject}`,
+
         headers: {
           "In-Reply-To": emailData.message_id,
         },
@@ -291,8 +282,6 @@ async function updateOrStartTrackingCompany({
             : "") +
           "Best,\nThe Sago Team",
       });
-
-      console.log("Found company data: ", newCompanyData);
 
       break;
 

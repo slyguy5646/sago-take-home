@@ -19,7 +19,6 @@ export function SignOutButton() {
         },
       });
     } catch (error) {
-      console.error("Failed to sign out:", error);
       setIsLoading(false);
     }
   };

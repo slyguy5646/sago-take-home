@@ -9,43 +9,43 @@ import {
 
 export async function startCompanyResearch(userId: string, company: any) {
   "use workflow";
-  // while (true) {
-  const { lastScrapeRound, newRound } = await scheduleNewRound(company);
+  while (true) {
+    const { lastScrapeRound, newRound } = await scheduleNewRound(company);
 
-  console.log("about to sleep");
-  await sleep("1min");
+    console.log("about to sleep");
+    await sleep("20min");
 
-  const { financialInfo, companySentiment, customerInfo } =
-    await conductResearchRound(company, lastScrapeRound);
+    const { financialInfo, companySentiment, customerInfo } =
+      await conductResearchRound(company, lastScrapeRound);
 
-  if (!financialInfo || !companySentiment || !customerInfo) return; //continue;
+    if (!financialInfo || !companySentiment || !customerInfo) continue;
 
-  const completedRound = await updateRound({
-    newRound,
-    companySentiment,
-    financialInfo,
-    customerInfo,
-  });
-
-  if (lastScrapeRound) {
-    const decision = await makeInvestmentDecision(
-      company,
-      lastScrapeRound,
-      completedRound
-    );
-
-    if (!decision.shouldInvest || !decision.outreachMessage) return; //continue;
-
-    await notifyUserOfNewDecision({
-      userId,
-      company,
-      reasoning: decision.reasoning,
-      outreachMessage: decision.outreachMessage,
+    const completedRound = await updateRound({
+      newRound,
+      companySentiment,
+      financialInfo,
+      customerInfo,
     });
 
-    // break;
-  }
+    if (lastScrapeRound) {
+      const decision = await makeInvestmentDecision(
+        company,
+        lastScrapeRound,
+        completedRound
+      );
 
-  console.log("finished research round!");
-  // }
+      if (!decision.shouldInvest || !decision.outreachMessage) continue;
+
+      await notifyUserOfNewDecision({
+        userId,
+        company,
+        reasoning: decision.reasoning,
+        outreachMessage: decision.outreachMessage,
+      });
+
+      break;
+    }
+
+    console.log("finished research round!");
+  }
 }
