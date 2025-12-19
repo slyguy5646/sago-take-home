@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Globe, Mail } from "lucide-react";
+import { ArrowLeft, Globe, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default async function CompanyPage({
@@ -134,37 +134,106 @@ export default async function CompanyPage({
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Research Updates</h2>
           <div className="space-y-3">
-            {company.scrapeRounds.map((round) => (
-              <div
-                key={round.id}
-                className="border border-neutral-200 rounded-lg p-4"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-neutral-900">
-                        Research Round {round.roundNumber}
-                      </p>
-                      {round.completed && (
-                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded">
-                          Completed
+            {company.scrapeRounds.filter((r) => !r.completed).length > 0 && (
+              <div className="space-y-3 mb-4">
+                <h3 className="text-sm font-semibold text-neutral-600 uppercase tracking-wide">
+                  Pending Research
+                </h3>
+                {company.scrapeRounds
+                  .filter((r) => !r.completed)
+                  .map((round) => (
+                    <div
+                      key={round.id}
+                      className="border border-amber-200 rounded-lg p-4 bg-amber-50"
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <Clock className="size-4 text-amber-600" />
+                        <p className="font-medium text-neutral-900">
+                          Research Round {round.roundNumber}
+                        </p>
+                        <span className="text-xs font-medium text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
+                          In Progress
                         </span>
-                      )}
+                      </div>
+                      <p className="text-sm text-neutral-600">
+                        Research scheduled for{" "}
+                        {new Date(round.scheduledFor).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )}
+                      </p>
                     </div>
-                    <p className="text-sm text-neutral-600 mt-2">
-                      {round.financialInfo}
-                    </p>
-                    <p className="text-xs text-neutral-400 mt-2">
-                      {new Date(round.updatedAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
+                  ))}
+              </div>
+            )}
+            {company.scrapeRounds
+              .filter((r) => r.completed)
+              .map((round) => (
+                <div
+                  key={round.id}
+                  className="border border-neutral-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-neutral-900">
+                          Research Round {round.roundNumber}
+                        </p>
+                        {round.completed && (
+                          <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                            Completed
+                          </span>
+                        )}
+                      </div>
+
+                      {round.financialInfo && (
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                            Financial Info
+                          </p>
+                          <p className="text-sm text-neutral-600 mt-1">
+                            {round.financialInfo}
+                          </p>
+                        </div>
+                      )}
+
+                      {round.sentiment && (
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                            Sentiment
+                          </p>
+                          <p className="text-sm text-neutral-600 mt-1">
+                            {round.sentiment}
+                          </p>
+                        </div>
+                      )}
+
+                      {round.customerInfo && (
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                            Customer Info
+                          </p>
+                          <p className="text-sm text-neutral-600 mt-1">
+                            {round.customerInfo}
+                          </p>
+                        </div>
+                      )}
+
+                      <p className="text-xs text-neutral-400 pt-2 border-t border-neutral-100">
+                        {new Date(round.updatedAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </section>
       )}

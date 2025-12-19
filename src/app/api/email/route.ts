@@ -7,15 +7,15 @@ import { ListAttachmentsResponseSuccess } from "resend";
 import { webSearch } from "@exalabs/ai-sdk";
 import {
   checkIfUserIsWatchingCompanyAlready,
-  conductResearchRound,
   newCompanyResearch,
+  researchFounders,
   updatePreviousCompany,
 } from "@/lib/ai";
 import { FilePart } from "ai";
 import { start } from "workflow/api";
 import { Company } from "@/generated/prisma/client";
 import { CompanyGetPayload } from "@/generated/prisma/models";
-import { startCompanyResearch } from "@/lib/continuous-research";
+import { startCompanyResearch } from "@/lib/continuous-research/workflow";
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
 
       console.log("Found user:", user.name);
       const emailData = result.data;
+
       console.log("Received email:", emailData);
 
       let attachments: ListAttachmentsResponseSuccess | null = null;
@@ -69,10 +70,6 @@ export async function POST(req: NextRequest) {
         attachments = atchments;
       }
 
-      console.log("URL: ", attachments?.data[0].download_url);
-
-      console.log(attachments?.data[0].download_url);
-
       const company = await updateOrStartTrackingCompany({
         userId: user.id,
         emailData: emailData,
@@ -83,6 +80,8 @@ export async function POST(req: NextRequest) {
       if (!company) return new NextResponse();
 
       await start(startCompanyResearch, [user.id, company]);
+
+      console.log("research started");
     }
 
     return new NextResponse();
@@ -181,24 +180,23 @@ async function updateOrStartTrackingCompany({
           website: updatedCompanyData.website,
           reasonForNotInvesting: updatedCompanyData.reasonForNotInvesting,
           logoUrl: updatedCompanyData.logoUrl,
-          founders: {
-            createMany: {
-              data: [
-                ...updatedCompanyData.founders.map((founder) => ({
-                  name: founder.name,
-                  bio: founder.bio,
-                  twitter: founder.twitter,
-                  email: founder.email,
-                  linkedin: founder.linkedin,
-                })),
-              ],
-            },
-          },
           user: {
             connect: { id: userId },
           },
         },
         include: { founders: true },
+      });
+
+      await prisma.emailRecord.create({
+        data: {
+          from: emailData.from,
+          subject: emailData.subject,
+          body: emailBody,
+          messageId: emailData.message_id,
+          company: {
+            connect: { id: company.id },
+          },
+        },
       });
 
       await resend.emails.send({
@@ -232,6 +230,12 @@ async function updateOrStartTrackingCompany({
         files,
       });
 
+      const founderInfo = await researchFounders({
+        name: newCompanyData.name,
+        description: newCompanyData.description,
+        industry: newCompanyData.industry,
+      });
+
       company = await prisma.company.create({
         data: {
           name: newCompanyData.name,
@@ -242,15 +246,13 @@ async function updateOrStartTrackingCompany({
           logoUrl: newCompanyData.logoUrl,
           founders: {
             createMany: {
-              data: [
-                ...newCompanyData.founders.map((founder) => ({
+              data:
+                founderInfo?.founders?.map((founder) => ({
                   name: founder.name,
                   bio: founder.bio,
-                  twitter: founder.twitter,
-                  email: founder.email,
+
                   linkedin: founder.linkedin,
-                })),
-              ],
+                })) || [],
             },
           },
           user: {
@@ -258,6 +260,18 @@ async function updateOrStartTrackingCompany({
           },
         },
         include: { founders: true },
+      });
+
+      await prisma.emailRecord.create({
+        data: {
+          from: emailData.from,
+          subject: emailData.subject,
+          body: emailBody,
+          messageId: emailData.message_id,
+          company: {
+            connect: { id: company.id },
+          },
+        },
       });
 
       await resend.emails.send({

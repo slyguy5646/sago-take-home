@@ -89,6 +89,7 @@ model Company {
 
   founders     Founder[]
   files CompanyFile[]
+  emailRecords EmailRecord[]
   scrapeRounds ScrapeRound[]
 
   userId String
@@ -154,6 +155,9 @@ model EmailRecord {
 
   subject String
   body    String
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   receivedAt DateTime @default(now())
 }
