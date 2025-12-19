@@ -1,4 +1,5 @@
 # Sago Take Home - Future Investment Evaluator
+### The writeup is in the repo `writeup.pdf` or on [Google Docs](https://docs.google.com/document/d/1v7paacqGz-MdPeDJMTK14DTcK93M7RfLqHf2SKWrsjw/edit?usp=sharing)
 ![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/screenshot.png)
 
 This project allows a user (a VC) to take information about a company they chose not to invest in, send an email with that company information, and run continuous research to get an email back when the company is ready for reconsideration.
