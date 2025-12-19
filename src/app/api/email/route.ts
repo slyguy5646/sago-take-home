@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resend, WebhookPayload } from "@/lib/resend";
-import {} from "next/navigation";
 import { prisma } from "@/lib/db";
 import { ListAttachmentsResponseSuccess } from "resend";
 import {
@@ -39,15 +38,25 @@ export async function POST(req: NextRequest) {
 
       const emailData = result.data;
 
+      // if we've already dealt with the email, return
+      const existingMessage = await prisma.emailRecord.findUnique({
+        where: {
+          company: {
+            user: { id: user.id },
+          },
+          messageId: emailData.message_id,
+        },
+      });
+
+      if (existingMessage) return new NextResponse();
+
       let attachments: ListAttachmentsResponseSuccess | null = null;
 
       const { data: emailBody, error } = await resend.emails.receiving.get(
         emailData.email_id
       );
 
-      if (error) {
-        return new NextResponse();
-      }
+      if (error) return new NextResponse();
 
       if (emailData.attachments.length > 0) {
         const { data: atchments, error } =

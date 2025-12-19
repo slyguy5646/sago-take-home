@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Settings } from "lucide-react";
 import { CompanyRow } from "@/components/dash/CompanyRow";
-import airbnb from "@/assets/airbnb.png";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/dash/CopyButton";

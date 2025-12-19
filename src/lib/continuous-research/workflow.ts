@@ -13,7 +13,7 @@ export async function startCompanyResearch(userId: string, company: any) {
     const { lastScrapeRound, newRound } = await scheduleNewRound(company);
 
     console.log("about to sleep");
-    await sleep("20min");
+    await sleep("1min");
 
     const { financialInfo, companySentiment, customerInfo } =
       await conductResearchRound(company, lastScrapeRound);
