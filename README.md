@@ -6,19 +6,19 @@ This project allows a user (a VC) to take information about a company they chose
 ## Example inputs and outputs:
 
 ### 1. User sends email to Sago with company information.
-![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/first-email.png)
+<img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/first-email.png" width="700">
 
 ### 2. Sago ingests company, schedules research, and replies to email.
-![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/add-reply.png)
+<img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/add-reply.png" width="700">
 
 ### 3. Pending research round is shown in web dashboard
-![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/pending-research.png)
+<img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/pending-research.png" width="700">
 
 ### 4. Completed research is show in the web dashboard, new round scheduled
-![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/research-round-completed.png)
+<img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/research-round-completed.png" width="700">
 
 ### 5. On the second round of research, the tool decides that company should be reconsidered for investment and emails the user accordingly with reasoning and a potential outreach message
-![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/reconsider-email/Screenshot%202025-12-19%20at%201.30.01%E2%80%AFPM.png)
-![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/reconsider-email/Screenshot%202025-12-19%20at%201.30.11%E2%80%AFPM.png)
-![image](https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/reconsider-email/Screenshot%202025-12-19%20at%201.30.40%E2%80%AFPM.png)
+<img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/reconsider-email/Screenshot%202025-12-19%20at%201.30.01%E2%80%AFPM.png" width="700">
+<img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/reconsider-email/Screenshot%202025-12-19%20at%201.30.11%E2%80%AFPM.png" width="700">
+<img src="https://github.com/slyguy5646/sago-take-home/blob/main/src/assets/sago-screenshots/reconsider-email/Screenshot%202025-12-19%20at%201.30.40%E2%80%AFPM.png" width="700">
 
